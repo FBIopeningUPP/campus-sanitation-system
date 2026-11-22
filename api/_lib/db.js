@@ -1,4 +1,4 @@
-import { createClient } from '@libsql/client/web';
+import { createClient } from '@libsql/client';
 
 let db = null;
 
@@ -10,6 +10,8 @@ export function getDb() {
     if (!url) {
       throw new Error('TURSO_DATABASE_URL environment variable is not set');
     }
+    
+    console.log('Connecting to Turso:', url.substring(0, 30) + '...');
     
     db = createClient({
       url,
