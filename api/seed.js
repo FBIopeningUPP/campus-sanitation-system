@@ -82,7 +82,13 @@ export default async function handler(req, res) {
       // Determine floors based on building type
       const isHostel = building.description === 'Hostel';
       const isFood = ['Mess', 'Paid Mess', 'Food Court'].includes(building.description);
-      const maxFloor = isFood ? 0 : (isHostel ? 3 : 2);
+      const isMainAcademic = ['A', 'B', 'N', 'P'].includes(building.code);
+      
+      let maxFloor = 0;
+      if (isFood) maxFloor = 0;           // Ground floor only
+      else if (isHostel) maxFloor = 12;   // G + 12 floors for hostels
+      else if (isMainAcademic) maxFloor = 3;  // G + 3 floors for A, B, N, P
+      else maxFloor = 2;                  // G + 2 floors for others (K, M)
 
       for (let floorNum = 0; floorNum <= maxFloor; floorNum++) {
         const floorId = uuidv4();
