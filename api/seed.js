@@ -90,8 +90,12 @@ export default async function handler(req, res) {
         [buildingId, building.name, building.code, building.description]
       );
 
-      // Add floors (0-5 for each building)
-      for (let floorNum = 0; floorNum <= 5; floorNum++) {
+      // Determine floors based on building type
+      const isHostel = building.description === 'Hostel';
+      const isFood = ['Mess', 'Paid Mess', 'Food Court'].includes(building.description);
+      const maxFloor = isFood ? 0 : (isHostel ? 3 : 2);
+
+      for (let floorNum = 0; floorNum <= maxFloor; floorNum++) {
         const floorId = uuidv4();
         const floorName = floorNum === 0 ? 'Ground Floor' : `Floor ${floorNum}`;
         
@@ -100,18 +104,18 @@ export default async function handler(req, res) {
           [floorId, buildingId, floorNum, floorName]
         );
 
-        // Add washrooms (male and female on each floor)
-        if (floorNum <= 3) { // Only first 4 floors
-          for (const gender of ['male', 'female']) {
-            const washroomId = uuidv4();
-            const washroomName = `${building.code} ${floorName} ${gender.charAt(0).toUpperCase() + gender.slice(1)} Washroom`;
-            const qrCode = `BU-${building.code}-F${floorNum}-${gender[0].toUpperCase()}-${washroomId.substring(0, 8)}`;
+        // Add washrooms - simpler naming
+        const genders = isHostel ? ['common'] : ['male', 'female'];
+        for (const gender of genders) {
+          const washroomId = uuidv4();
+          const genderLabel = gender === 'common' ? '' : (gender === 'male' ? 'Male ' : 'Female ');
+          const washroomName = `${building.name} ${floorName} ${genderLabel}Washroom`.trim();
+          const qrCode = `BU-${building.code}-F${floorNum}-${washroomId.substring(0, 8)}`;
 
-            await run(
-              'INSERT INTO washrooms (id, floor_id, name, gender, qr_code, average_rating, total_ratings) VALUES (?, ?, ?, ?, ?, ?, ?)',
-              [washroomId, floorId, washroomName, gender, qrCode, Math.random() * 2 + 3, Math.floor(Math.random() * 20)]
-            );
-          }
+          await run(
+            'INSERT INTO washrooms (id, floor_id, name, gender, qr_code, average_rating, total_ratings) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [washroomId, floorId, washroomName, gender, qrCode, 0, 0]
+          );
         }
       }
     }
