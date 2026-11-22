@@ -3,7 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'campus-sanitation-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set');
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,21 +31,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Check if admin exists, if not create default admin
-    let admins = await query('SELECT * FROM admins WHERE email = ?', [email]);
+    // Find admin by email
+    const admins = await query('SELECT * FROM admins WHERE email = ?', [email]);
     
-    if (admins.length === 0 && email === 'admin@bennett.edu.in') {
-      // Create default admin
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      const adminId = uuidv4();
-      await run(
-        'INSERT INTO admins (id, email, password_hash, name) VALUES (?, ?, ?, ?)',
-        [adminId, 'admin@bennett.edu.in', hashedPassword, 'Admin']
-      );
-      admins = await query('SELECT * FROM admins WHERE email = ?', [email]);
-    }
-
     if (admins.length === 0) {
+      // Use constant-time comparison to prevent timing attacks
+      await bcrypt.compare(password, '$2a$10$invalidhashtopreventtimingattacks');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

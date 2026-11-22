@@ -9,6 +9,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Protect seed endpoint with secret key
+  const seedKey = req.headers['x-seed-key'] || req.query.key;
+  const expectedKey = process.env.SEED_KEY;
+  
+  if (expectedKey && seedKey !== expectedKey) {
+    return res.status(403).json({ error: 'Unauthorized - seed key required' });
+  }
+
   try {
     await initializeDatabase();
 
@@ -68,13 +76,20 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create default admin
-    const adminId = uuidv4();
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    await run(
-      'INSERT OR IGNORE INTO admins (id, email, password_hash, name) VALUES (?, ?, ?, ?)',
-      [adminId, 'admin@bennett.edu.in', hashedPassword, 'Administrator']
-    );
+    // Create admin from environment variables (secure)
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (adminEmail && adminPassword) {
+      const adminId = uuidv4();
+      const hashedPassword = await bcrypt.hash(adminPassword, 12); // Higher cost factor
+      await run(
+        'INSERT OR IGNORE INTO admins (id, email, password_hash, name) VALUES (?, ?, ?, ?)',
+        [adminId, adminEmail, hashedPassword, 'Administrator']
+      );
+    } else {
+      console.warn('ADMIN_EMAIL or ADMIN_PASSWORD not set - no admin created');
+    }
 
     const finalCount = await query('SELECT COUNT(*) as count FROM buildings');
     const washroomCount = await query('SELECT COUNT(*) as count FROM washrooms');

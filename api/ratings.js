@@ -1,9 +1,14 @@
 import { query, run, initializeDatabase } from './_lib/db.js';
+import { sanitizeText, sanitizeUUID, sanitizeInt } from './_lib/sanitize.js';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
 function hashIP(ip) {
-  return crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'salt')).digest('hex').substring(0, 16);
+  const salt = process.env.IP_SALT;
+  if (!salt) {
+    console.error('WARNING: IP_SALT not set, using fallback');
+  }
+  return crypto.createHash('sha256').update(ip + (salt || crypto.randomBytes(16).toString('hex'))).digest('hex').substring(0, 16);
 }
 
 export default async function handler(req, res) {
@@ -39,7 +44,12 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { washroom_id, rating, feedback } = req.body;
       
-      if (!washroom_id || !rating || rating < 1 || rating > 5) {
+      // Sanitize inputs
+      const cleanWashroomId = sanitizeUUID(washroom_id);
+      const cleanRating = sanitizeInt(rating, 1, 5);
+      const cleanFeedback = feedback ? sanitizeText(feedback, 500) : null;
+      
+      if (!cleanWashroomId || !cleanRating) {
         return res.status(400).json({ error: 'Invalid rating data' });
       }
 
@@ -50,20 +60,20 @@ export default async function handler(req, res) {
       await run(`
         INSERT INTO ratings (id, washroom_id, rating, feedback, ip_hash)
         VALUES (?, ?, ?, ?, ?)
-      `, [id, washroom_id, rating, feedback || null, ipHash]);
+      `, [id, cleanWashroomId, cleanRating, cleanFeedback, ipHash]);
 
       // Update washroom average rating
       const stats = await query(`
         SELECT AVG(rating) as avg_rating, COUNT(*) as total
         FROM ratings WHERE washroom_id = ?
-      `, [washroom_id]);
+      `, [cleanWashroomId]);
 
       if (stats[0]) {
         await run(`
           UPDATE washrooms 
           SET average_rating = ?, total_ratings = ?
           WHERE id = ?
-        `, [stats[0].avg_rating || 0, stats[0].total || 0, washroom_id]);
+        `, [stats[0].avg_rating || 0, stats[0].total || 0, cleanWashroomId]);
       }
 
       return res.status(201).json({ 

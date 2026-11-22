@@ -1,9 +1,14 @@
 import { query, run, initializeDatabase } from './_lib/db.js';
+import { sanitizeText, sanitizeUUID } from './_lib/sanitize.js';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
 function hashIP(ip) {
-  return crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'salt')).digest('hex').substring(0, 16);
+  const salt = process.env.IP_SALT;
+  if (!salt) {
+    console.error('WARNING: IP_SALT not set, using fallback');
+  }
+  return crypto.createHash('sha256').update(ip + (salt || crypto.randomBytes(16).toString('hex'))).digest('hex').substring(0, 16);
 }
 
 export default async function handler(req, res) {
@@ -54,8 +59,16 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { washroom_id, issue_type, description, priority = 'medium' } = req.body;
       
-      if (!washroom_id || !issue_type) {
-        return res.status(400).json({ error: 'Washroom ID and issue type are required' });
+      // Sanitize inputs
+      const cleanWashroomId = sanitizeUUID(washroom_id);
+      const validIssueTypes = ['cleanliness', 'maintenance', 'supplies', 'plumbing', 'other'];
+      const cleanIssueType = validIssueTypes.includes(issue_type) ? issue_type : null;
+      const cleanDescription = description ? sanitizeText(description, 1000) : null;
+      const validPriorities = ['low', 'medium', 'high', 'urgent'];
+      const cleanPriority = validPriorities.includes(priority) ? priority : 'medium';
+      
+      if (!cleanWashroomId || !cleanIssueType) {
+        return res.status(400).json({ error: 'Washroom ID and valid issue type are required' });
       }
 
       const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
@@ -65,7 +78,7 @@ export default async function handler(req, res) {
       await run(`
         INSERT INTO issues (id, washroom_id, issue_type, description, priority, ip_hash)
         VALUES (?, ?, ?, ?, ?, ?)
-      `, [id, washroom_id, issue_type, description || null, priority, ipHash]);
+      `, [id, cleanWashroomId, cleanIssueType, cleanDescription, cleanPriority, ipHash]);
 
       // Get the created issue with details
       const issues = await query(`
