@@ -51,11 +51,14 @@ export default function HomePage() {
     food: buildings.filter(b => ['Mess', 'Paid Mess', 'Food Court'].includes(b.description)),
   };
 
-  // Get unique floors from washrooms
+  // Get unique floors from washrooms - sort numerically
   const floors = [...new Set(washrooms.map(w => w.floor_name))].sort((a, b) => {
     if (a === 'Ground Floor') return -1;
     if (b === 'Ground Floor') return 1;
-    return a.localeCompare(b);
+    // Extract floor numbers and sort numerically
+    const numA = parseInt(a.replace('Floor ', '')) || 0;
+    const numB = parseInt(b.replace('Floor ', '')) || 0;
+    return numA - numB;
   });
 
   // Filter washrooms by selected floor
