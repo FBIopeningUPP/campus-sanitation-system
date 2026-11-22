@@ -20,6 +20,17 @@ export default async function handler(req, res) {
   try {
     await initializeDatabase();
 
+    // Check for reset flag - clears all data and reseeds
+    const resetAll = req.query.reset === 'true';
+    
+    if (resetAll) {
+      await run('DELETE FROM ratings');
+      await run('DELETE FROM issues');
+      await run('DELETE FROM washrooms');
+      await run('DELETE FROM floors');
+      await run('DELETE FROM buildings');
+    }
+    
     // Get existing building codes
     const existingBuildings = await query('SELECT code FROM buildings');
     const existingCodes = new Set(existingBuildings.map(b => b.code));
