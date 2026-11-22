@@ -1,0 +1,11 @@
+{
+  "name": "campus-sanitation-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@libsql/client": "^0.6.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.0"
+  }
+}
