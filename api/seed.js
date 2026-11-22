@@ -105,10 +105,10 @@ export default async function handler(req, res) {
         );
 
         // Add washrooms - simpler naming
-        const genders = isHostel ? ['common'] : ['male', 'female'];
+        const genders = isHostel ? ['unisex'] : ['male', 'female'];
         for (const gender of genders) {
           const washroomId = uuidv4();
-          const genderLabel = gender === 'common' ? '' : (gender === 'male' ? 'Male ' : 'Female ');
+          const genderLabel = gender === 'unisex' ? '' : (gender === 'male' ? 'Male ' : 'Female ');
           const washroomName = `${building.name} ${floorName} ${genderLabel}Washroom`.trim();
           const qrCode = `BU-${building.code}-F${floorNum}-${washroomId.substring(0, 8)}`;
 
