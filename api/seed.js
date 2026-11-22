@@ -20,25 +20,9 @@ export default async function handler(req, res) {
   try {
     await initializeDatabase();
 
-    // Check if force reseed requested
-    const forceReseed = req.query.force === 'true';
-    
-    const existingBuildings = await query('SELECT COUNT(*) as count FROM buildings');
-    if (existingBuildings[0]?.count > 0 && !forceReseed) {
-      return res.status(200).json({ 
-        message: 'Database already seeded. Use ?force=true to reseed.',
-        buildings: existingBuildings[0].count
-      });
-    }
-    
-    // Clear existing data if reseeding
-    if (forceReseed) {
-      await run('DELETE FROM ratings');
-      await run('DELETE FROM issues');
-      await run('DELETE FROM washrooms');
-      await run('DELETE FROM floors');
-      await run('DELETE FROM buildings');
-    }
+    // Get existing building codes
+    const existingBuildings = await query('SELECT code FROM buildings');
+    const existingCodes = new Set(existingBuildings.map(b => b.code));
 
     // Seed buildings - Bennett University Campus
     const buildings = [
@@ -83,7 +67,12 @@ export default async function handler(req, res) {
       { name: 'Melting Point', code: 'MP', description: 'Food Court' },
     ];
 
+    let addedCount = 0;
     for (const building of buildings) {
+      // Skip if building already exists
+      if (existingCodes.has(building.code)) continue;
+      
+      addedCount++;
       const buildingId = uuidv4();
       await run(
         'INSERT INTO buildings (id, name, code, description) VALUES (?, ?, ?, ?)',
@@ -139,9 +128,9 @@ export default async function handler(req, res) {
     const washroomCount = await query('SELECT COUNT(*) as count FROM washrooms');
 
     return res.status(200).json({ 
-      message: 'Database seeded successfully',
-      buildings: finalCount[0]?.count || 0,
-      washrooms: washroomCount[0]?.count || 0
+      message: addedCount > 0 ? `Added ${addedCount} new buildings` : 'All buildings already exist',
+      totalBuildings: finalCount[0]?.count || 0,
+      totalWashrooms: washroomCount[0]?.count || 0
     });
   } catch (error) {
     console.error('Seed error:', error);
