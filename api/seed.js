@@ -20,27 +20,67 @@ export default async function handler(req, res) {
   try {
     await initializeDatabase();
 
-    // Check if already seeded
+    // Check if force reseed requested
+    const forceReseed = req.query.force === 'true';
+    
     const existingBuildings = await query('SELECT COUNT(*) as count FROM buildings');
-    if (existingBuildings[0]?.count > 0) {
+    if (existingBuildings[0]?.count > 0 && !forceReseed) {
       return res.status(200).json({ 
-        message: 'Database already seeded',
+        message: 'Database already seeded. Use ?force=true to reseed.',
         buildings: existingBuildings[0].count
       });
     }
+    
+    // Clear existing data if reseeding
+    if (forceReseed) {
+      await run('DELETE FROM ratings');
+      await run('DELETE FROM issues');
+      await run('DELETE FROM washrooms');
+      await run('DELETE FROM floors');
+      await run('DELETE FROM buildings');
+    }
 
-    // Seed buildings
+    // Seed buildings - Bennett University Campus
     const buildings = [
-      { name: 'Academic Block 1', code: 'AB1', description: 'Main academic building' },
-      { name: 'Academic Block 2', code: 'AB2', description: 'Science and labs' },
-      { name: 'Academic Block 3', code: 'AB3', description: 'Engineering block' },
-      { name: 'Library', code: 'LIB', description: 'Central library' },
-      { name: 'Student Center', code: 'SC', description: 'Student activities' },
-      { name: 'Boys Hostel 1', code: 'BH1', description: 'Boys accommodation' },
-      { name: 'Girls Hostel 1', code: 'GH1', description: 'Girls accommodation' },
-      { name: 'Cafeteria', code: 'CAF', description: 'Main cafeteria' },
-      { name: 'Sports Complex', code: 'SPT', description: 'Sports facilities' },
-      { name: 'Admin Block', code: 'ADM', description: 'Administration' },
+      // Academic Blocks
+      { name: 'A Block', code: 'A', description: 'Academic' },
+      { name: 'B Block', code: 'B', description: 'Academic' },
+      { name: 'K Block', code: 'K', description: 'Academic' },
+      
+      // C Block Hostels
+      { name: 'C1', code: 'C1', description: 'Hostel' },
+      { name: 'C2', code: 'C2', description: 'Hostel' },
+      { name: 'C3', code: 'C3', description: 'Hostel' },
+      { name: 'C4', code: 'C4', description: 'Hostel' },
+      { name: 'C5', code: 'C5', description: 'Hostel' },
+      { name: 'C6', code: 'C6', description: 'Hostel' },
+      { name: 'C7', code: 'C7', description: 'Hostel' },
+      { name: 'C8', code: 'C8', description: 'Hostel' },
+      { name: 'C9', code: 'C9', description: 'Hostel' },
+      { name: 'C10', code: 'C10', description: 'Hostel' },
+      { name: 'C11', code: 'C11', description: 'Hostel' },
+      { name: 'C12', code: 'C12', description: 'Hostel' },
+      
+      // D Block Hostels
+      { name: 'D1', code: 'D1', description: 'Hostel' },
+      { name: 'D2', code: 'D2', description: 'Hostel' },
+      { name: 'D3', code: 'D3', description: 'Hostel' },
+      { name: 'D4', code: 'D4', description: 'Hostel' },
+      { name: 'D5', code: 'D5', description: 'Hostel' },
+      { name: 'D6', code: 'D6', description: 'Hostel' },
+      
+      // E Block Hostel
+      { name: 'E1', code: 'E1', description: 'Hostel' },
+      
+      // Other Blocks
+      { name: 'M Block', code: 'M', description: 'Block' },
+      { name: 'N Block', code: 'N', description: 'Block' },
+      { name: 'P Block', code: 'P', description: 'Block' },
+      
+      // Food
+      { name: 'Mess', code: 'MESS', description: 'Mess' },
+      { name: 'Paid Mess', code: 'PM', description: 'Paid Mess' },
+      { name: 'Melting Point', code: 'MP', description: 'Food Court' },
     ];
 
     for (const building of buildings) {
