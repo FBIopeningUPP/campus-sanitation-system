@@ -56,10 +56,10 @@ export default async function handler(req, res) {
       // E Block Hostel
       { name: 'E1', code: 'E1', description: 'Hostel' },
       
-      // Other Blocks
-      { name: 'M Block', code: 'M', description: 'Block' },
-      { name: 'N Block', code: 'N', description: 'Block' },
-      { name: 'P Block', code: 'P', description: 'Block' },
+      // Academic Blocks
+      { name: 'M Block', code: 'M', description: 'Academic' },
+      { name: 'N Block', code: 'N', description: 'Academic' },
+      { name: 'P Block', code: 'P', description: 'Academic' },
       
       // Food
       { name: 'Mess', code: 'MESS', description: 'Mess' },
